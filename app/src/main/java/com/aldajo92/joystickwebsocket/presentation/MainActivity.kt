@@ -6,6 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,7 +88,6 @@ fun MainScreen(
     val ipFieldState by viewModel.ipFieldState.collectAsState()
     val ipFieldValid by viewModel.isIpValid.collectAsState(false)
     val connectionState by viewModel.connectionState.collectAsState()
-    val enableButtonState by viewModel.enableButtonState.collectAsState(false)
 
     Column(
         modifier.fillMaxSize()
@@ -128,22 +133,43 @@ fun MainScreen(
                 },
                 label = { Text(text = if (ipFieldValid) "IP" else "Invalid IP") },
                 isError = !ipFieldValid,
-//                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                enabled = connectionState == ConnectionState.Disconnected
             )
-            Button(
+            ConnectionButton(
                 modifier = Modifier.align(Alignment.CenterVertically),
-                enabled = enableButtonState,
-                onClick = {
-                    viewModel.connect()
-                    viewModel.startClock()
-                }
-            ) {
-                Text(text = "Connect")
-            }
+                onConnectClicked = viewModel::connect,
+                onDisconnectClicked = viewModel::disconnect,
+                showConnectLabel = connectionState == ConnectionState.Disconnected
+            )
         }
         TextConnection(
             modifier = Modifier.fillMaxWidth(),
             showConnection = connectionState == ConnectionState.Connected
+        )
+    }
+}
+
+@Preview
+@Composable
+fun ConnectionButton(
+    modifier: Modifier = Modifier,
+    onConnectClicked: () -> Unit = {},
+    onDisconnectClicked: () -> Unit = {},
+    showConnectLabel: Boolean = false
+) {
+    if (showConnectLabel) Button(
+        modifier = modifier,
+        onClick = onConnectClicked
+    ) {
+        Text(text = "Connect")
+    } else Button(
+        modifier = modifier,
+        onClick = onDisconnectClicked,
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Green)
+    ) {
+        Text(
+            text = "Disconnect",
+            color = Color.Black
         )
     }
 }
@@ -153,7 +179,11 @@ fun TextConnection(
     modifier: Modifier = Modifier,
     showConnection: Boolean = false,
 ) {
-    AnimatedVisibility(modifier = modifier.fillMaxWidth(), visible = showConnection) {
+    AnimatedVisibility(
+        modifier = modifier.fillMaxWidth(),
+        visible = showConnection,
+        exit = slideOutVertically(tween(500)) + shrinkVertically(tween(500)) + fadeOut(tween(500))
+    ) {
         Text(
             modifier = Modifier
                 .fillMaxWidth()

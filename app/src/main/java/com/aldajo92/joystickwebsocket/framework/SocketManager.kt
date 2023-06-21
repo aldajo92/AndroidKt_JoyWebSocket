@@ -41,7 +41,9 @@ class SocketManager(
     }
 
     fun disconnect() {
-        mSocket?.disconnect()
+        val socket = mSocket?.disconnect()
+        Log.i("SocketManager", "disconnected ${socket?.id()}")
+        socketListener?.onConnectionClosed()
     }
 
 }

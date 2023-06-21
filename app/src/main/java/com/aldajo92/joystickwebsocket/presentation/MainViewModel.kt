@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -45,31 +44,32 @@ class MainViewModel @Inject constructor(
             initialValue = ConnectionState.Disconnected
         )
 
-    private val _ipFieldState = MutableStateFlow("http://192.168.4.1:5170")
+    private val _ipFieldState = MutableStateFlow("http://192.168.1.34:5170")
     val ipFieldState = _ipFieldState.asStateFlow()
 
     val isIpValid = _ipFieldState.map {
         ipValidator.isValid(it)
     }
 
-    val enableButtonState = combine(
-        connectionState,
-        isIpValid
-    ) { connectionState, isIpValid ->
-        isIpValid && connectionState == ConnectionState.Disconnected
-    }
-
     fun setIP(value: String) {
         _ipFieldState.value = value
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun connect() {
+        viewModelScope.launch {
+            if (connectionState.value != ConnectionState.Connected) {
+                robotMessageRepository.startConnection(_ipFieldState.value)
+                startClock()
+            }
+        }
+    }
+
+    fun disconnect() {
         viewModelScope.launch {
             if (connectionState.value == ConnectionState.Connected) {
                 robotMessageRepository.endConnection()
-                return@launch
-            } else {
-                robotMessageRepository.startConnection(_ipFieldState.value)
+                stopClock()
             }
         }
     }
@@ -79,7 +79,7 @@ class MainViewModel @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun startClock() {
+    private fun startClock() {
         clockJob = if (clockJob == null) {
             tickerFlow(0.1.seconds)
                 .map { LocalDateTime.now() }
@@ -97,7 +97,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun stopClock(){
+    private fun stopClock() {
         clockJob?.cancel()
         clockJob = null
     }
