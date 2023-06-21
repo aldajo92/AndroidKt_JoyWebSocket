@@ -177,11 +177,12 @@ fun MainScreen(
             OutlinedTextField(
                 modifier = Modifier.weight(1f),
                 value = ipFieldState,
+                singleLine = true,
                 onValueChange = {
                     val filtered = it.replace("[\\s-,]".toRegex(), "")
                     viewModel.setIP(filtered)
                 },
-                label = { Text(text = if (ipFieldValid) "IP" else "Invalid IP") },
+                label = { Text(text = if (ipFieldValid) "Address" else "Invalid Address") },
                 isError = !ipFieldValid,
                 enabled = connectionState == ConnectionState.Disconnected
             )
