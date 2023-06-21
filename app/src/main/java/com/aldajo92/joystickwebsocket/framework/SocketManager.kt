@@ -1,46 +1,47 @@
 package com.aldajo92.joystickwebsocket.framework
 
 import android.util.Log
-import com.aldajo92.joystickwebsocket.models.MoveRobotMessage
-import com.squareup.moshi.Moshi
+import com.aldajo92.joystickwebsocket.presentation.ROBOT_MESSAGE
 import io.socket.client.IO
 import io.socket.client.Socket
+import io.socket.emitter.Emitter
+import kotlinx.coroutines.delay
 
 class SocketManager(
-    private val socketPath: String
+    private val socketListener: SocketManagerListener? = null
 ) {
+    private var mSocket: Socket? = null
 
-    lateinit var mSocket: Socket
-
-    private val jsonAdapter by lazy {
-        Moshi.Builder().build().adapter(MoveRobotMessage::class.java)
+    private val robotMessage = Emitter.Listener {
+//        val robotMessage = objectGSon.fromJson(it[0].toString(), RobotVelocityEncoder::class.java)
+//        socketListener.onDataReceived(robotMessage)
     }
 
-    fun connect() {
+    suspend fun connect(socketPath: String) {
         try {
             mSocket = IO.socket(socketPath)
-            Log.d("success", mSocket.id())
+            Log.d("SocketManager", "success ${mSocket?.id().orEmpty()}")
+            socketListener?.onConnectionOpened(mSocket?.id().orEmpty())
+            delay(1000)
+            mSocket?.connect()
+            mSocket?.on(Socket.EVENT_CONNECT) {
+                Log.i("SocketManager", "connected")
+                socketListener?.onConnectionStarted()
+            }
+            mSocket?.on(ROBOT_MESSAGE, robotMessage)
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.d("fail", "Failed to connect")
-        }
-
-        mSocket.connect()
-        mSocket.on(Socket.EVENT_CONNECT) {
-            Log.i(this::class.java.name, "connected")
+            Log.d("SocketManager", "Failed to connect")
+            socketListener?.onConnectionError(e.message ?: "Failed to connect")
         }
     }
 
-    fun sendData(channel: String, src: MoveRobotMessage) {
-        val jsonData = jsonAdapter.toJson(src)
-        mSocket.emit(channel, jsonData)
+    fun sendData(channel: String, data: String) {
+        mSocket?.emit(channel, data)
     }
 
     fun disconnect() {
-        mSocket.disconnect()
+        mSocket?.disconnect()
     }
 
 }
-
-const val ROBOT_MESSAGE = "robot-message"
-const val ROBOT_COMMAND = "robot-command"

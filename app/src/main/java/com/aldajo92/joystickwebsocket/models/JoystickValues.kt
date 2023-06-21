@@ -1,4 +1,4 @@
-package com.aldajo92.joystickwebsocket
+package com.aldajo92.joystickwebsocket.models
 
 data class JoystickValues(
     val valueX: Float = 0F,
