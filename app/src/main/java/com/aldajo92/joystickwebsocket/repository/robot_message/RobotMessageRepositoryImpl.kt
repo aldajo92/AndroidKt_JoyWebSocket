@@ -15,6 +15,7 @@ class RobotMessageRepositoryImpl : RobotMessageRepository, SocketManagerListener
         SocketManager(this)
     }
 
+    // TODO: Inject this
     private val jsonAdapter by lazy {
         Moshi
             .Builder()

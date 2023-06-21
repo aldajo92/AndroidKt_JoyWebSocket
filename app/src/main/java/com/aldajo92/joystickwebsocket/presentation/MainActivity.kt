@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,14 +23,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,9 +47,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
@@ -89,13 +102,50 @@ fun MainScreen(
     val ipFieldValid by viewModel.isIpValid.collectAsState(false)
     val connectionState by viewModel.connectionState.collectAsState()
 
+    val dialogState: MutableState<Boolean> = remember {
+        mutableStateOf(false)
+    }
+
+    if (dialogState.value) {
+        Dialog(
+            onDismissRequest = { dialogState.value = false },
+            content = {
+                InfoDialogContent(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    dialogState = dialogState
+                )
+            },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        )
+    }
+
     Column(
         modifier.fillMaxSize()
     ) {
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = textState
-        )
+        Box(Modifier.fillMaxWidth()) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(16.dp),
+                text = textState
+            )
+            Icon(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(16.dp)
+                    .clickable {
+                        dialogState.value = true
+                    },
+                imageVector = Icons.Filled.Info,
+                contentDescription = "Information",
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -194,5 +244,59 @@ fun TextConnection(
             color = Color.Black,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Preview
+@Composable
+fun InfoDialogContent(
+    modifier: Modifier = Modifier,
+    title: String = "Title",
+    dialogState: MutableState<Boolean> = remember { mutableStateOf(true) },
+    successButtonText: String = "Success",
+    viewModel: InfoDialogViewModel = hiltViewModel(),
+    content: @Composable () -> Unit = {}
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(1f),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clickable { dialogState.value = false },
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Text(text = "Json format sent:")
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.4f))
+            ) {
+                Text(
+                    modifier = Modifier.padding(16.dp),
+                    text = viewModel.getJsonExample(),
+                    style = TextStyle(fontFamily = FontFamily.Monospace, color = Color.Gray)
+                )
+            }
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = "By: Alejandro Gómez (@aldajo92)",
+                textAlign = TextAlign.End,
+                fontSize = 10.sp
+            )
+        }
     }
 }
