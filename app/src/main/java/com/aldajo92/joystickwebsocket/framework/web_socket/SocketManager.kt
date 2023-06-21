@@ -1,4 +1,4 @@
-package com.aldajo92.joystickwebsocket.framework
+package com.aldajo92.joystickwebsocket.framework.web_socket
 
 import android.util.Log
 import com.aldajo92.joystickwebsocket.presentation.ROBOT_MESSAGE

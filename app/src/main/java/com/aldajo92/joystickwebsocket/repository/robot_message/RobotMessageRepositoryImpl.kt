@@ -1,7 +1,7 @@
 package com.aldajo92.joystickwebsocket.repository.robot_message
 
-import com.aldajo92.joystickwebsocket.framework.SocketManager
-import com.aldajo92.joystickwebsocket.framework.SocketManagerListener
+import com.aldajo92.joystickwebsocket.framework.web_socket.SocketManager
+import com.aldajo92.joystickwebsocket.framework.web_socket.SocketManagerListener
 import com.aldajo92.joystickwebsocket.models.MoveRobotMessage
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory

@@ -1,4 +1,4 @@
-package com.aldajo92.joystickwebsocket.framework
+package com.aldajo92.joystickwebsocket.framework.web_socket
 
 interface SocketManagerListener {
 

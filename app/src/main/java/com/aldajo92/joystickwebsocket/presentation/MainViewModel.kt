@@ -9,6 +9,7 @@ import com.aldajo92.joystickwebsocket.models.JoystickValues
 import com.aldajo92.joystickwebsocket.models.MoveRobotMessage
 import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
 import com.aldajo92.joystickwebsocket.repository.robot_message.RobotMessageRepository
+import com.aldajo92.joystickwebsocket.repository.url.UrlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -30,6 +31,7 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val robotMessageRepository: RobotMessageRepository,
+    private val urlRepository: UrlRepository,
     @Named("ip") ipValidator: FieldValidator
 ) : ViewModel() {
 
@@ -38,14 +40,26 @@ class MainViewModel @Inject constructor(
 
     val connectionState = robotMessageRepository
         .getRobotConnectionState()
+        .map {
+            if (it == ConnectionState.Connected) urlRepository.saveUrl(_ipFieldState.value)
+            it
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
             initialValue = ConnectionState.Disconnected
         )
 
-    private val _ipFieldState = MutableStateFlow("http://192.168.1.34:5170")
+    private val _ipFieldState = MutableStateFlow("http://192.168.1.32:5170")
     val ipFieldState = _ipFieldState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            urlRepository.getStoredUrlFlow().collect {
+                if (it.isNotEmpty()) _ipFieldState.value = it
+            }
+        }
+    }
 
     val isIpValid = _ipFieldState.map {
         ipValidator.isValid(it)
@@ -67,10 +81,8 @@ class MainViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch {
-            if (connectionState.value == ConnectionState.Connected) {
-                robotMessageRepository.endConnection()
-                stopClock()
-            }
+            robotMessageRepository.endConnection()
+            stopClock()
         }
     }
 
