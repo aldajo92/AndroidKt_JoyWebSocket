@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +61,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.aldajo92.joystickwebsocket.R
 import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
 import com.aldajo92.joystickwebsocket.ui.JoyStick
 import com.aldajo92.joystickwebsocket.ui.theme.JoystickWebsocketTheme
@@ -119,7 +124,7 @@ fun MainScreen(
             },
             properties = DialogProperties(
                 dismissOnBackPress = false,
-                dismissOnClickOutside = false
+                dismissOnClickOutside = true
             )
         )
     }
@@ -261,7 +266,10 @@ fun InfoDialogContent(
     Card(
         modifier = modifier
             .fillMaxWidth(1f),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(red = 28, green = 27, blue = 31)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -270,33 +278,54 @@ fun InfoDialogContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    text = "Json format sent:",
+                    color = Color.White
+                )
                 Icon(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .clickable { dialogState.value = false },
                     imageVector = Icons.Filled.Close,
                     contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onBackground
+                    tint = Color.White
                 )
             }
-            Text(text = "Json format sent:")
             Box(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.Black.copy(alpha = 0.4f))
             ) {
+                val clipboardManager = LocalClipboardManager.current
+                val textToShow = viewModel.getJsonExample()
+                Icon(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .align(Alignment.TopEnd)
+                        .clickable {
+                            clipboardManager.setText(AnnotatedString((textToShow)))
+                        },
+                    contentDescription = "Copy",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    painter = painterResource(id = R.drawable.ic_copy_24)
+                )
                 Text(
                     modifier = Modifier.padding(16.dp),
-                    text = viewModel.getJsonExample(),
-                    style = TextStyle(fontFamily = FontFamily.Monospace, color = Color.Gray)
+                    text = textToShow,
+                    style = TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
                 )
             }
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 text = "By: Alejandro Gómez (@aldajo92)",
                 textAlign = TextAlign.End,
-                fontSize = 10.sp
+                fontSize = 10.sp,
+                color = Color.White
             )
         }
     }
