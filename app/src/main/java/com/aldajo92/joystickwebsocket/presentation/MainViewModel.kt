@@ -1,8 +1,8 @@
 package com.aldajo92.joystickwebsocket.presentation
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.unit.Velocity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aldajo92.joystickwebsocket.framework.validation.FieldValidator
@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Named
 import kotlin.time.Duration
@@ -46,6 +47,9 @@ class MainViewModel @Inject constructor(
 
     private var clockJob: Job? = null
     private var joystickValues = JoystickValues()
+
+    private var _joystickValueState = MutableStateFlow(JoystickValues())
+    val joystickValueState = _joystickValueState.asStateFlow()
 
     val connectionState = robotMessageRepository
         .getRobotConnectionState()
@@ -106,9 +110,9 @@ class MainViewModel @Inject constructor(
     private fun updateText(xValue: Float, yValue: Float, velocity: Float) {
         _textState.value = "x=${
             String.format("%.1f", xValue * velocity)
-        }\ny=${
+        }\t\ty=${
             String.format("%.1f", yValue * velocity)
-        }\nv=${String.format("%.1f", velocity)}"
+        }\t\tv=${String.format("%.1f", velocity)}"
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -121,6 +125,9 @@ class MainViewModel @Inject constructor(
                         steering = joystickValues.valueY * joystickValues.velocity,
                         throttle = -joystickValues.valueX * joystickValues.velocity,
                     )
+                    Log.i("MainViewModel", "Sending message: $joystickValues")
+                    _joystickValueState.value =
+                        joystickValues.copy(timestamp = Calendar.getInstance().timeInMillis)
                     robotMessageRepository.sendMessage(ROBOT_COMMAND, robotMessage)
                 }
                 .launchIn(viewModelScope)
