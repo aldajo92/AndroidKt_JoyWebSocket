@@ -93,7 +93,7 @@ class MainViewModel @Inject constructor(
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startClock() {
         clockJob = if (clockJob == null) {
-            tickerFlow(0.1.seconds)
+            tickerFlow(0.3.seconds)
                 .map { LocalDateTime.now() }
                 .onEach {
                     val robotMessage = MoveRobotMessage(
