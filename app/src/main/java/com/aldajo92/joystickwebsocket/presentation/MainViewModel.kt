@@ -92,15 +92,30 @@ class MainViewModel @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startClock() {
+        var sendFlag = true
         clockJob = if (clockJob == null) {
             tickerFlow(0.3.seconds)
                 .map { LocalDateTime.now() }
                 .onEach {
-                    val robotMessage = MoveRobotMessage(
-                        steering = joystickValues.valueY,
-                        throttle = -joystickValues.valueX,
-                    )
-                    robotMessageRepository.sendMessage(ROBOT_COMMAND, robotMessage)
+                    val xValue = joystickValues.valueX
+                    val yValue = joystickValues.valueY
+                    if (xValue != 0f || yValue != 0f) {
+                        val robotMessage = MoveRobotMessage(
+                            steering = yValue,
+                            throttle = -xValue,
+                        )
+                        robotMessageRepository.sendMessage(ROBOT_COMMAND, robotMessage)
+                        sendFlag = false
+                    } else {
+                        if (!sendFlag) {
+                            val robotMessage = MoveRobotMessage(
+                                steering = 0f,
+                                throttle = 0f,
+                            )
+                            robotMessageRepository.sendMessage(ROBOT_COMMAND, robotMessage)
+                            sendFlag = true
+                        }
+                    }
                 }
                 .launchIn(viewModelScope)
         } else {
@@ -108,6 +123,7 @@ class MainViewModel @Inject constructor(
             null
         }
     }
+
 
     private fun stopClock() {
         clockJob?.cancel()
