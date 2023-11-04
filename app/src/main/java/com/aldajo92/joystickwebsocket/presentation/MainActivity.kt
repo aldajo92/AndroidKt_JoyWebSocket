@@ -39,6 +39,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,6 +67,9 @@ import com.aldajo92.joystickwebsocket.R
 import com.aldajo92.joystickwebsocket.presentation.ui.JoyStick
 import com.aldajo92.joystickwebsocket.presentation.ui.theme.JoystickWebsocketTheme
 import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
+import com.aldajo92.joystickwebsocket.ui.ChartCard
+import com.aldajo92.joystickwebsocket.ui.MultiXYWrapper
+import com.github.mikephil.charting.utils.ColorTemplate
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -119,7 +123,7 @@ fun MainScreen(
                 InfoDialogContent(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp),
                     dialogState = dialogState
                 )
             },
@@ -137,7 +141,7 @@ fun MainScreen(
             DisplayValuesComponents(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp),
                 viewModel = viewModel
             )
             Icon(
@@ -152,16 +156,18 @@ fun MainScreen(
                 tint = MaterialTheme.colorScheme.onBackground
             )
         }
-        Box(
+        CardChartWrapper(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .weight(1f),
+            viewModel = viewModel
+        )
+        JoyStickComponent(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-        ) {
-            JoyStickComponent(
-                modifier = Modifier.align(Alignment.Center),
-                viewModel = viewModel
-            )
-        }
+                .weight(1f),
+            viewModel = viewModel
+        )
         SliderComponent(
             modifier = Modifier
                 .fillMaxWidth()
@@ -201,30 +207,60 @@ fun MainScreen(
 }
 
 @Composable
+fun CardChartWrapper(
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel = hiltViewModel()
+){
+    val xyWrapper = remember {
+        MultiXYWrapper(
+            listOf(
+                ColorTemplate.getHoloBlue(),
+                android.graphics.Color.rgb(244, 10, 10)
+            )
+        )
+    }
+    val joyState by viewModel.joystickValueState.collectAsState()
+
+    LaunchedEffect(joyState) {
+        xyWrapper.addEntry(joyState.valueY, 0)
+        xyWrapper.addEntry(joyState.valueX, 1)
+    }
+
+    ChartCard(
+        modifier = modifier,
+        xyWrapper = xyWrapper,
+    )
+}
+
+@Composable
 fun JoyStickComponent(modifier: Modifier, viewModel: MainViewModel) {
     val coroutineScope = rememberCoroutineScope()
-    JoyStick(
-        modifier = modifier,
-        size = 150.dp,
-        dotSize = 30.dp,
-        backgroundComposable = {
-            Spacer(
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onBackground)
-            )
-        }
-    ) { x: Float, y: Float ->
-        coroutineScope.launch {
-            viewModel.setCurrentJoystickState(x, y)
+    Box(
+        modifier = modifier
+    ) {
+        JoyStick(
+            modifier = Modifier.align(Alignment.Center),
+            size = 150.dp,
+            dotSize = 30.dp,
+            backgroundComposable = {
+                Spacer(
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onBackground)
+                )
+            }
+        ) { x: Float, y: Float ->
+            coroutineScope.launch {
+                viewModel.setCurrentJoystickState(x, y)
+            }
         }
     }
 }
 
 @Composable
 fun DisplayValuesComponents(modifier: Modifier, viewModel: MainViewModel) {
-    val textState by viewModel.textState.collectAsState("x=0.0\ny=0.0\nv=0.0")
+    val textState by viewModel.textState.collectAsState("")
     Text(
         modifier = modifier,
         text = textState
