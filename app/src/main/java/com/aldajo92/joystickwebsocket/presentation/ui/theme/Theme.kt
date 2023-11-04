@@ -1,4 +1,4 @@
-package com.aldajo92.joystickwebsocket.ui.theme
+package com.aldajo92.joystickwebsocket.presentation.ui.theme
 
 import android.app.Activity
 import android.os.Build

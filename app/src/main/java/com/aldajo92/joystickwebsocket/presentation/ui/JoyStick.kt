@@ -1,4 +1,4 @@
-package com.aldajo92.joystickwebsocket.ui
+package com.aldajo92.joystickwebsocket.presentation.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures

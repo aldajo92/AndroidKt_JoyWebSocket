@@ -2,6 +2,7 @@ package com.aldajo92.joystickwebsocket.presentation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.unit.Velocity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aldajo92.joystickwebsocket.framework.validation.FieldValidator
@@ -11,6 +12,8 @@ import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
 import com.aldajo92.joystickwebsocket.repository.robot_message.RobotMessageRepository
 import com.aldajo92.joystickwebsocket.repository.url.UrlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +37,12 @@ class MainViewModel @Inject constructor(
     private val urlRepository: UrlRepository,
     @Named("ip") ipValidator: FieldValidator
 ) : ViewModel() {
+
+    private val _textState: MutableStateFlow<String> = MutableStateFlow("")
+    val textState = _textState.asStateFlow()
+
+    private val _velocityMaxState: MutableStateFlow<Float> = MutableStateFlow(1.0f)
+    val velocityMaxState = _velocityMaxState.asStateFlow()
 
     private var clockJob: Job? = null
     private var joystickValues = JoystickValues()
@@ -71,7 +80,7 @@ class MainViewModel @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun connect() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             if (connectionState.value != ConnectionState.Connected) {
                 robotMessageRepository.startConnection(_ipFieldState.value)
                 startClock()
@@ -80,14 +89,26 @@ class MainViewModel @Inject constructor(
     }
 
     fun disconnect() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             robotMessageRepository.endConnection()
             stopClock()
         }
     }
 
     fun setCurrentJoystickState(xValue: Float, yValue: Float) {
-        this.joystickValues = JoystickValues(xValue, yValue)
+        viewModelScope.launch(Dispatchers.IO) {
+            val velocity = _velocityMaxState.value
+            joystickValues = JoystickValues(xValue, yValue, velocity)
+            updateText(xValue, yValue, velocity)
+        }
+    }
+
+    private fun updateText(xValue: Float, yValue: Float, velocity: Float) {
+        _textState.value = "x=${
+            String.format("%.1f", xValue * velocity)
+        }\ny=${
+            String.format("%.1f", yValue * velocity)
+        }\nv=${String.format("%.1f", velocity)}"
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -97,8 +118,8 @@ class MainViewModel @Inject constructor(
                 .map { LocalDateTime.now() }
                 .onEach {
                     val robotMessage = MoveRobotMessage(
-                        steering = joystickValues.valueY,
-                        throttle = -joystickValues.valueX,
+                        steering = joystickValues.valueY * joystickValues.velocity,
+                        throttle = -joystickValues.valueX * joystickValues.velocity,
                     )
                     robotMessageRepository.sendMessage(ROBOT_COMMAND, robotMessage)
                 }
@@ -119,6 +140,16 @@ class MainViewModel @Inject constructor(
         while (true) {
             emit(Unit)
             delay(period)
+        }
+    }
+
+    fun setVelocityMax(value: Float) {
+        CoroutineScope(Dispatchers.IO).launch {
+            _velocityMaxState.value = value
+            val xValue = joystickValues.valueX
+            val yValue = joystickValues.valueY
+
+            updateText(xValue, yValue, value)
         }
     }
 

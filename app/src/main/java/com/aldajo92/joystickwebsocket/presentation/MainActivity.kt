@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,10 +63,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aldajo92.joystickwebsocket.R
+import com.aldajo92.joystickwebsocket.presentation.ui.JoyStick
+import com.aldajo92.joystickwebsocket.presentation.ui.theme.JoystickWebsocketTheme
 import com.aldajo92.joystickwebsocket.repository.robot_message.ConnectionState
-import com.aldajo92.joystickwebsocket.ui.JoyStick
-import com.aldajo92.joystickwebsocket.ui.theme.JoystickWebsocketTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -101,7 +103,6 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    var textState by remember { mutableStateOf("x=0.0\ny=0.0") }
 
     val ipFieldState by viewModel.ipFieldState.collectAsState()
     val ipFieldValid by viewModel.isIpValid.collectAsState(false)
@@ -133,11 +134,11 @@ fun MainScreen(
         modifier.fillMaxSize()
     ) {
         Box(Modifier.fillMaxWidth()) {
-            Text(
+            DisplayValuesComponents(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(16.dp),
-                text = textState
+                viewModel = viewModel
             )
             Icon(
                 modifier = Modifier
@@ -156,27 +157,21 @@ fun MainScreen(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            JoyStick(
-                Modifier.align(Alignment.Center),
-                size = 150.dp,
-                dotSize = 30.dp,
-                backgroundComposable = {
-                    Spacer(
-                        modifier = Modifier
-                            .size(150.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onBackground)
-                    )
-                }
-            ) { x: Float, y: Float ->
-                textState = "x=$x\ny=$y"
-                viewModel.setCurrentJoystickState(x, y)
-            }
+            JoyStickComponent(
+                modifier = Modifier.align(Alignment.Center),
+                viewModel = viewModel
+            )
         }
+        SliderComponent(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp), viewModel = viewModel
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedTextField(
@@ -203,6 +198,49 @@ fun MainScreen(
             showConnection = connectionState == ConnectionState.Connected
         )
     }
+}
+
+@Composable
+fun JoyStickComponent(modifier: Modifier, viewModel: MainViewModel) {
+    val coroutineScope = rememberCoroutineScope()
+    JoyStick(
+        modifier = modifier,
+        size = 150.dp,
+        dotSize = 30.dp,
+        backgroundComposable = {
+            Spacer(
+                modifier = Modifier
+                    .size(150.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onBackground)
+            )
+        }
+    ) { x: Float, y: Float ->
+        coroutineScope.launch {
+            viewModel.setCurrentJoystickState(x, y)
+        }
+    }
+}
+
+@Composable
+fun DisplayValuesComponents(modifier: Modifier, viewModel: MainViewModel) {
+    val textState by viewModel.textState.collectAsState("x=0.0\ny=0.0\nv=0.0")
+    Text(
+        modifier = modifier,
+        text = textState
+    )
+}
+
+@Composable
+fun SliderComponent(modifier: Modifier, viewModel: MainViewModel) {
+    val sliderValueState by viewModel.velocityMaxState.collectAsState(1f)
+    Slider(
+        modifier = modifier,
+        value = sliderValueState,
+        valueRange = 1f..3f,
+        steps = 8,
+        onValueChange = viewModel::setVelocityMax,
+    )
 }
 
 @Preview
