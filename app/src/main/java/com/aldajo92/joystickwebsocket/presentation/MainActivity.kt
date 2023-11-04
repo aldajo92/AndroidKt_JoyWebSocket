@@ -107,14 +107,6 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val xyWrapper = remember {
-        MultiXYWrapper(
-            listOf(
-                ColorTemplate.getHoloBlue(),
-                android.graphics.Color.rgb(244, 10, 10)
-            )
-        )
-    }
 
     val ipFieldState by viewModel.ipFieldState.collectAsState()
     val ipFieldValid by viewModel.isIpValid.collectAsState(false)
@@ -168,7 +160,6 @@ fun MainScreen(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .weight(1f),
-            xyWrapper = xyWrapper,
             viewModel = viewModel
         )
         JoyStickComponent(
@@ -218,9 +209,16 @@ fun MainScreen(
 @Composable
 fun CardChartWrapper(
     modifier: Modifier = Modifier,
-    xyWrapper: MultiXYWrapper,
     viewModel: MainViewModel = hiltViewModel()
-) {
+){
+    val xyWrapper = remember {
+        MultiXYWrapper(
+            listOf(
+                ColorTemplate.getHoloBlue(),
+                android.graphics.Color.rgb(244, 10, 10)
+            )
+        )
+    }
     val joyState by viewModel.joystickValueState.collectAsState()
 
     LaunchedEffect(joyState) {
